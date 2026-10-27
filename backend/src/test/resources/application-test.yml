@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:payroll;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  seed:
+    enabled: false
+    count: 10000
+  cors:
+    allowed-origins: http://localhost:4200
