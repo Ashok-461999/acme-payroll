@@ -1,0 +1,288 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">People directory</p>
+      <h1>Employees</h1>
+      <p class="subtitle">
+        Search the organisation, keep employee details current, and open a profile to review
+        or change salary. Amounts are annual salaries in each person's own currency.
+      </p>
+    </div>
+    <a mat-flat-button color="primary" routerLink="/employees/new">
+      <mat-icon>person_add</mat-icon>
+      Add employee
+    </a>
+  </header>
+
+  <form class="panel filters" [formGroup]="filterForm" aria-label="Employee filters">
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <mat-label>Search</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        formControlName="search"
+        placeholder="Name, employee code or email"
+        autocomplete="off"
+      />
+      @if (filterForm.controls.search.value) {
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          aria-label="Clear search"
+          (click)="clearSearch()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Department</mat-label>
+      <mat-select formControlName="department">
+        <mat-option value="">All departments</mat-option>
+        @for (department of departments; track department.value) {
+          <mat-option [value]="department.value">{{ department.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Country</mat-label>
+      <mat-select formControlName="country">
+        <mat-option value="">All countries</mat-option>
+        @for (country of countries; track country.code) {
+          <mat-option [value]="country.code">{{ country.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Currency</mat-label>
+      <mat-select formControlName="currency">
+        <mat-option value="">All currencies</mat-option>
+        @for (currency of currencies; track currency.code) {
+          <mat-option [value]="currency.code">{{ currency.code }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <button
+      mat-stroked-button
+      type="button"
+      class="clear-filters"
+      [disabled]="!hasActiveFilters"
+      (click)="clearFilters()"
+    >
+      <mat-icon>filter_alt_off</mat-icon>
+      Clear
+    </button>
+  </form>
+
+  @if (errorMessage) {
+    <div class="error-banner" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Could not load employees.</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <button mat-button type="button" (click)="loadEmployees()">Try again</button>
+    </div>
+  }
+
+  <section class="panel table-panel">
+    <div class="panel-header">
+      <div>
+        <h2>Employee directory</h2>
+        <p>
+          {{ totalElements | number }} employee{{ totalElements === 1 ? '' : 's' }}
+          @if (hasActiveFilters) {
+            <span> · filtered</span>
+          }
+        </p>
+      </div>
+      @if (loading && employees.length > 0) {
+        <span class="updating-label">Updating…</span>
+      }
+    </div>
+
+    @if (loading && employees.length > 0) {
+      <mat-progress-bar mode="indeterminate" class="table-progress"></mat-progress-bar>
+    }
+
+    @if (loading && employees.length === 0) {
+      <div class="loading-state">
+        <mat-spinner diameter="36"></mat-spinner>
+        <p>Loading employees…</p>
+      </div>
+    } @else if (!loading && employees.length === 0) {
+      <div class="empty-state">
+        <mat-icon>person_search</mat-icon>
+        <h2>No employees found</h2>
+        <p>
+          Try a different search or clear the filters. You can also add a new employee with
+          their first salary.
+        </p>
+        <button mat-stroked-button type="button" (click)="clearFilters()">Clear filters</button>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th
+                [attr.aria-sort]="
+                  sortBy === 'lastName'
+                    ? direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                "
+              >
+                <button type="button" class="sort-button" (click)="changeSort('lastName')">
+                  Employee
+                  <mat-icon [class.inactive]="sortBy !== 'lastName'">{{
+                    sortIcon('lastName')
+                  }}</mat-icon>
+                </button>
+              </th>
+              <th
+                class="col-department"
+                [attr.aria-sort]="
+                  sortBy === 'department'
+                    ? direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                "
+              >
+                <button type="button" class="sort-button" (click)="changeSort('department')">
+                  Department
+                  <mat-icon [class.inactive]="sortBy !== 'department'">{{
+                    sortIcon('department')
+                  }}</mat-icon>
+                </button>
+              </th>
+              <th
+                class="col-country"
+                [attr.aria-sort]="
+                  sortBy === 'country'
+                    ? direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                "
+              >
+                <button type="button" class="sort-button" (click)="changeSort('country')">
+                  Country
+                  <mat-icon [class.inactive]="sortBy !== 'country'">{{
+                    sortIcon('country')
+                  }}</mat-icon>
+                </button>
+              </th>
+              <th
+                class="col-hire"
+                [attr.aria-sort]="
+                  sortBy === 'hireDate'
+                    ? direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                "
+              >
+                <button type="button" class="sort-button" (click)="changeSort('hireDate')">
+                  Hired
+                  <mat-icon [class.inactive]="sortBy !== 'hireDate'">{{
+                    sortIcon('hireDate')
+                  }}</mat-icon>
+                </button>
+              </th>
+              <th
+                class="number"
+                [attr.aria-sort]="
+                  sortBy === 'currentSalary'
+                    ? direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                "
+              >
+                <button type="button" class="sort-button" (click)="changeSort('currentSalary')">
+                  Current salary
+                  <mat-icon [class.inactive]="sortBy !== 'currentSalary'">{{
+                    sortIcon('currentSalary')
+                  }}</mat-icon>
+                </button>
+              </th>
+              <th class="actions-header"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (employee of employees; track employee.id) {
+              <tr
+                class="employee-row"
+                tabindex="0"
+                [attr.aria-label]="'Open ' + employee.fullName"
+                (click)="openEmployee(employee)"
+                (keydown.enter)="openEmployee(employee)"
+                (keydown.space)="$event.preventDefault(); openEmployee(employee)"
+              >
+                <td>
+                  <div class="employee-cell">
+                    <span class="employee-avatar">{{ initials(employee) }}</span>
+                    <div>
+                      <strong>{{ employee.fullName }}</strong>
+                      <span>{{ employee.employeeCode }} · {{ employee.email }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="col-department">
+                  <span class="chip">{{ departmentName(employee.department) }}</span>
+                  <span class="job-title">{{ employee.jobTitle }}</span>
+                </td>
+                <td class="col-country">
+                  <span class="country-code">{{ employee.country }}</span>
+                  {{ countryLabel(employee.country) }}
+                </td>
+                <td class="col-hire">{{ employee.hireDate | date: 'mediumDate' }}</td>
+                <td class="number salary-cell amount">
+                  {{ employee.currentSalary | money: employee.currency }}
+                  <span class="salary-date">
+                    since {{ employee.currentSalaryEffectiveDate | date: 'mediumDate' }}
+                  </span>
+                </td>
+                <td class="row-actions" (click)="$event.stopPropagation()">
+                  <a
+                    mat-icon-button
+                    [routerLink]="['/employees', employee.id]"
+                    matTooltip="View profile"
+                    aria-label="View employee profile"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </a>
+                  <a
+                    mat-icon-button
+                    [routerLink]="['/employees', employee.id, 'edit']"
+                    matTooltip="Edit details"
+                    aria-label="Edit employee details"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="totalElements"
+        [pageIndex]="pageIndex"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [showFirstLastButtons]="true"
+        (page)="onPage($event)"
+      ></mat-paginator>
+    }
+  </section>
+</section>

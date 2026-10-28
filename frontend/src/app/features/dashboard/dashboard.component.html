@@ -1,0 +1,210 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Workforce analytics</p>
+      <h1>Payroll overview</h1>
+      <p class="subtitle">
+        How ACME pays its people. Every number is grouped by currency, so totals are never
+        mixed across countries with different currencies.
+      </p>
+    </div>
+    <div class="header-actions">
+      <a mat-flat-button color="primary" routerLink="/employees/new">
+        <mat-icon>person_add</mat-icon>
+        Add employee
+      </a>
+      <button mat-stroked-button type="button" (click)="load()" [disabled]="loading">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="error-banner" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Analytics unavailable.</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <button mat-button type="button" (click)="load()">Try again</button>
+    </div>
+  }
+
+  @if (loading) {
+    <div class="panel loading-state">
+      <mat-spinner diameter="38"></mat-spinner>
+      <p>Calculating payroll across currencies…</p>
+    </div>
+  } @else if (summary && summary.totalEmployees === 0) {
+    <div class="panel empty-state">
+      <mat-icon>insights</mat-icon>
+      <h2>No salary data yet</h2>
+      <p>Add your first employee to start seeing headcount and payroll analytics.</p>
+    </div>
+  } @else if (summary) {
+    @if (selectedSummary; as current) {
+      <div class="kpi-grid">
+        <article class="kpi-card kpi-card--ink">
+          <span class="kpi-label">Total employees</span>
+          <strong class="kpi-value">{{ summary.totalEmployees | number }}</strong>
+          <span class="kpi-meta">
+            Across {{ summary.currencies.length }} currencies and
+            {{ summary.countries.length }} countries
+          </span>
+        </article>
+
+        <article class="kpi-card">
+          <span class="kpi-label">Annual payroll · {{ current.currency }}</span>
+          <strong class="kpi-value">
+            {{ current.totalSalary | money: current.currency }}
+          </strong>
+          <span class="kpi-meta">{{ current.headcount | number }} people in this currency</span>
+        </article>
+
+        <article class="kpi-card">
+          <span class="kpi-label">Average salary · {{ current.currency }}</span>
+          <strong class="kpi-value">
+            {{ current.averageSalary | money: current.currency }}
+          </strong>
+          <span class="kpi-meta">Mean of all current salaries in this currency</span>
+        </article>
+
+        <article class="kpi-card">
+          <span class="kpi-label">Highest salary · {{ current.currency }}</span>
+          <strong class="kpi-value">
+            {{ current.maxSalary | money: current.currency }}
+          </strong>
+          <span class="kpi-meta">
+            Lowest is
+            {{ current.minSalary | money: current.currency }}
+          </span>
+        </article>
+      </div>
+    }
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Payroll by currency</h2>
+          <p>Select a currency to inspect its departments and countries below.</p>
+        </div>
+        @if (selectedCurrency) {
+          <a
+            mat-button
+            class="panel-link"
+            routerLink="/employees"
+            [queryParams]="{ currency: selectedCurrency }"
+          >
+            View {{ selectedCurrency }} employees
+            <mat-icon>arrow_forward</mat-icon>
+          </a>
+        }
+      </div>
+
+      <div class="currency-grid">
+        @for (currency of summary.currencies; track currency.currency) {
+          <button
+            type="button"
+            class="currency-card"
+            [class.active]="currency.currency === selectedCurrency"
+            [attr.aria-pressed]="currency.currency === selectedCurrency"
+            (click)="selectCurrency(currency.currency)"
+          >
+            <span class="currency-code">{{ currency.currency }}</span>
+            <span class="currency-people">{{ currency.headcount | number }} people</span>
+            <strong class="amount">
+              {{ currency.totalSalary | money: currency.currency }}
+            </strong>
+            <span class="currency-average">
+              Avg {{ currency.averageSalary | money: currency.currency }}
+            </span>
+          </button>
+        }
+      </div>
+    </section>
+
+    <div class="split-grid">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Departments · {{ selectedCurrency }}</h2>
+            <p>Average annual salary by department in the selected currency.</p>
+          </div>
+        </div>
+
+        <div class="row-list">
+          @for (row of departmentRows; track row.department) {
+            <div class="data-row">
+              <div class="row-top">
+                <div>
+                  <strong>{{ departmentName(row.department) }}</strong>
+                  <span>{{ row.headcount | number }} people</span>
+                </div>
+                <div class="row-amount">
+                  <strong class="amount">
+                    {{ row.averageSalary | money: selectedCurrency }}
+                  </strong>
+                  <span>average</span>
+                </div>
+              </div>
+              <div class="bar-track" aria-hidden="true">
+                <span
+                  class="bar-fill"
+                  [style.width]="departmentBarWidth(row.averageSalary)"
+                ></span>
+              </div>
+            </div>
+          } @empty {
+            <p class="muted-copy">No department data for this currency.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Countries · {{ selectedCurrency }}</h2>
+            <p>Headcount and pay for each country paid in this currency.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th class="number">People</th>
+                <th class="number">Avg salary</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of countryRows; track row.country) {
+                <tr>
+                  <td>
+                    <span class="country-code">{{ row.country }}</span>
+                    <span class="country-name">{{ countryLabel(row.country) }}</span>
+                  </td>
+                  <td class="number">{{ row.headcount | number }}</td>
+                  <td class="number amount">
+                    {{ row.averageSalary | money: selectedCurrency }}
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="muted-copy">No country data for this currency.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <p class="footnote">
+      <mat-icon>info</mat-icon>
+      Amounts are current annual salaries grouped by ISO currency. ACME does not convert
+      currencies in this tool, so different currencies are never added together.
+    </p>
+  }
+</section>

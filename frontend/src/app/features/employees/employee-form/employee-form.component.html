@@ -1,0 +1,336 @@
+<section class="page">
+  <a class="back-link" [routerLink]="mode === 'edit' && employeeId ? ['/employees', employeeId] : ['/employees']">
+    <mat-icon>arrow_back</mat-icon>
+    {{ mode === 'edit' ? 'Back to profile' : 'Back to employees' }}
+  </a>
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">{{ mode === 'create' ? 'New hire' : 'Employee record' }}</p>
+      <h1>{{ title }}</h1>
+      <p class="subtitle">
+        @if (mode === 'create') {
+          Create the employee record together with their first salary. The initial salary
+          becomes the first entry in an append-only salary history.
+        } @else {
+          Update personal and employment details. Salary is changed separately from the
+          profile so that every increase keeps a reason, effective date and audit trail.
+        }
+      </p>
+    </div>
+  </header>
+
+  @if (loadError) {
+    <div class="error-banner" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Could not load this employee.</strong>
+        <p>{{ loadError }}</p>
+      </div>
+      <a mat-button routerLink="/employees">Back to list</a>
+    </div>
+  } @else if (loading) {
+    <div class="panel loading-state">
+      <mat-spinner diameter="38"></mat-spinner>
+      <p>Loading employee record…</p>
+    </div>
+  } @else {
+    <form class="form-layout" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="form-column">
+        @if (generalError) {
+          <div class="error-banner" role="alert">
+            <mat-icon>error_outline</mat-icon>
+            <div>
+              <strong>Save failed.</strong>
+              <p>{{ generalError }}</p>
+            </div>
+          </div>
+        }
+
+        <section class="panel form-section">
+          <div class="section-heading">
+            <span class="section-icon"><mat-icon>badge</mat-icon></span>
+            <div>
+              <h2>Personal details</h2>
+              <p>Who the employee is and how to reach them.</p>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            @if (mode === 'create') {
+              <mat-form-field appearance="outline" class="span-2" subscriptSizing="dynamic">
+                <mat-label>Employee code</mat-label>
+                <input matInput formControlName="employeeCode" maxlength="20" />
+                <button
+                  mat-icon-button
+                  matSuffix
+                  type="button"
+                  aria-label="Generate another employee code"
+                  (click)="regenerateEmployeeCode()"
+                >
+                  <mat-icon>autorenew</mat-icon>
+                </button>
+                <mat-hint>Unique code used in reports and payroll exports.</mat-hint>
+                @if (employeeCode.hasError('required')) {
+                  <mat-error>Employee code is required.</mat-error>
+                } @else if (employeeCode.hasError('pattern')) {
+                  <mat-error>Use only letters, digits and hyphens.</mat-error>
+                } @else if (employeeCode.hasError('maxlength')) {
+                  <mat-error>Employee code must be 20 characters or fewer.</mat-error>
+                } @else if (fieldError('employeeCode'); as message) {
+                  <mat-error>{{ message }}</mat-error>
+                }
+              </mat-form-field>
+            } @else {
+              <div class="readonly-field span-2">
+                <span>Employee code</span>
+                <strong>{{ employee?.employeeCode }}</strong>
+              </div>
+            }
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>First name</mat-label>
+              <input matInput formControlName="firstName" maxlength="80" autocomplete="given-name" />
+              @if (firstName.hasError('required')) {
+                <mat-error>First name is required.</mat-error>
+              } @else if (firstName.hasError('maxlength')) {
+                <mat-error>First name must be 80 characters or fewer.</mat-error>
+              } @else if (fieldError('firstName'); as message) {
+                <mat-error>{{ message }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Last name</mat-label>
+              <input matInput formControlName="lastName" maxlength="80" autocomplete="family-name" />
+              @if (lastName.hasError('required')) {
+                <mat-error>Last name is required.</mat-error>
+              } @else if (lastName.hasError('maxlength')) {
+                <mat-error>Last name must be 80 characters or fewer.</mat-error>
+              } @else if (fieldError('lastName'); as message) {
+                <mat-error>{{ message }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="span-2" subscriptSizing="dynamic">
+              <mat-label>Work email</mat-label>
+              <input matInput type="email" formControlName="email" maxlength="255" autocomplete="email" />
+              @if (email.hasError('required')) {
+                <mat-error>Email is required.</mat-error>
+              } @else if (email.hasError('email')) {
+                <mat-error>Enter a valid email address.</mat-error>
+              } @else if (email.hasError('maxlength')) {
+                <mat-error>Email must be 255 characters or fewer.</mat-error>
+              } @else if (fieldError('email'); as message) {
+                <mat-error>{{ message }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </section>
+
+        <section class="panel form-section">
+          <div class="section-heading">
+            <span class="section-icon"><mat-icon>work</mat-icon></span>
+            <div>
+              <h2>Employment details</h2>
+              <p>Where the employee sits and which currency they are paid in.</p>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Department</mat-label>
+              <mat-select formControlName="department">
+                @for (option of departments; track option.value) {
+                  <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                }
+              </mat-select>
+              @if (department.hasError('required')) {
+                <mat-error>Department is required.</mat-error>
+              } @else if (fieldError('department'); as message) {
+                <mat-error>{{ message }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Job title</mat-label>
+              <input matInput formControlName="jobTitle" maxlength="100" autocomplete="organization-title" />
+              @if (jobTitle.hasError('required')) {
+                <mat-error>Job title is required.</mat-error>
+              } @else if (jobTitle.hasError('maxlength')) {
+                <mat-error>Job title must be 100 characters or fewer.</mat-error>
+              } @else if (fieldError('jobTitle'); as message) {
+                <mat-error>{{ message }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Country</mat-label>
+              <mat-select formControlName="country">
+                @for (option of countries; track option.code) {
+                  <mat-option [value]="option.code">{{ option.name }}</mat-option>
+                }
+              </mat-select>
+              @if (fieldError('country'); as message) {
+                <mat-error>{{ message }}</mat-error>
+              }
+            </mat-form-field>
+
+            @if (mode === 'create') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Salary currency</mat-label>
+                <mat-select formControlName="currency">
+                  @for (option of currencies; track option.code) {
+                    <mat-option [value]="option.code">{{ option.code }} · {{ option.name }}</mat-option>
+                  }
+                </mat-select>
+                <mat-hint>Suggested from the country, but you can override it.</mat-hint>
+                @if (fieldError('currency'); as message) {
+                  <mat-error>{{ message }}</mat-error>
+                }
+              </mat-form-field>
+            } @else {
+              <div class="readonly-field">
+                <span>Salary currency</span>
+                <strong>{{ employee?.currency }}</strong>
+                <small><mat-icon>lock</mat-icon> Currency is fixed for this employee</small>
+              </div>
+            }
+
+            @if (mode === 'create') {
+              <mat-form-field appearance="outline" class="span-2" subscriptSizing="dynamic">
+                <mat-label>Hire date</mat-label>
+                <input matInput [matDatepicker]="hirePicker" formControlName="hireDate" [max]="today" />
+                <mat-datepicker-toggle matIconSuffix [for]="hirePicker"></mat-datepicker-toggle>
+                <mat-datepicker #hirePicker></mat-datepicker>
+                @if (hireDate.hasError('required')) {
+                  <mat-error>Hire date is required.</mat-error>
+                } @else if (fieldError('hireDate'); as message) {
+                  <mat-error>{{ message }}</mat-error>
+                }
+              </mat-form-field>
+            } @else {
+              <div class="readonly-field">
+                <span>Hire date</span>
+                <strong>{{ employee?.hireDate | date: 'mediumDate' }}</strong>
+              </div>
+            }
+          </div>
+        </section>
+
+        @if (mode === 'create') {
+          <section class="panel form-section">
+            <div class="section-heading">
+              <span class="section-icon"><mat-icon>payments</mat-icon></span>
+              <div>
+                <h2>First salary</h2>
+                <p>Annual gross salary in the employee's currency. This creates salary history entry one.</p>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Annual gross salary</mat-label>
+                <span matTextPrefix class="currency-prefix">{{ currency.value }}&nbsp;</span>
+                <input matInput type="number" min="0.01" step="0.01" formControlName="initialSalary" />
+                <mat-hint>For example, 85000.00 for 85,000 per year.</mat-hint>
+                @if (initialSalary.hasError('required')) {
+                  <mat-error>Initial salary is required.</mat-error>
+                } @else if (initialSalary.hasError('min')) {
+                  <mat-error>Salary must be greater than zero.</mat-error>
+                } @else if (fieldError('initialSalary'); as message) {
+                  <mat-error>{{ message }}</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Effective date</mat-label>
+                <input
+                  matInput
+                  [matDatepicker]="effectivePicker"
+                  formControlName="initialSalaryEffectiveDate"
+                  [min]="hireDate.value"
+                  [max]="today"
+                />
+                <mat-datepicker-toggle matIconSuffix [for]="effectivePicker"></mat-datepicker-toggle>
+                <mat-datepicker #effectivePicker></mat-datepicker>
+                <mat-hint>On or after the hire date, and never in the future.</mat-hint>
+                @if (initialSalaryEffectiveDate.hasError('required')) {
+                  <mat-error>Effective date is required.</mat-error>
+                } @else if (initialSalaryEffectiveDate.hasError('beforeHireDate')) {
+                  <mat-error>Salary cannot start before the hire date.</mat-error>
+                } @else if (fieldError('initialSalaryEffectiveDate'); as message) {
+                  <mat-error>{{ message }}</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          </section>
+        }
+
+        <div class="form-actions">
+          <button mat-stroked-button type="button" (click)="cancel()" [disabled]="saving">
+            Cancel
+          </button>
+          <button mat-flat-button color="primary" type="submit" [disabled]="saving">
+            @if (saving) {
+              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>{{ mode === 'create' ? 'person_add' : 'save' }}</mat-icon>
+            }
+            {{ mode === 'create' ? 'Create employee' : 'Save changes' }}
+          </button>
+        </div>
+      </div>
+
+      <aside class="form-aside">
+        @if (mode === 'edit' && employee) {
+          <section class="panel aside-panel compensation-panel">
+            <p class="eyebrow">Current compensation</p>
+            <strong class="aside-amount">
+              {{ employee.currentSalary | money: employee.currency }}
+            </strong>
+            <p class="aside-muted">
+              Annual gross · effective
+              {{ employee.currentSalaryEffectiveDate | date: 'mediumDate' }}
+            </p>
+            <a mat-stroked-button [routerLink]="['/employees', employee.id]">
+              <mat-icon>trending_up</mat-icon>
+              Open profile &amp; salary history
+            </a>
+            <p class="aside-note">
+              Salary is not edited here. Open the profile to add a dated change with a reason
+              and optional note.
+            </p>
+          </section>
+        }
+
+        <section class="panel aside-panel">
+          <h2>How payroll data works</h2>
+          <ul class="guidance-list">
+            <li>
+              <mat-icon>history</mat-icon>
+              <div>
+                <strong>Salary history is append-only</strong>
+                <span>Existing salary entries are never overwritten or deleted.</span>
+              </div>
+            </li>
+            <li>
+              <mat-icon>event_available</mat-icon>
+              <div>
+                <strong>Changes take effect on a date</strong>
+                <span>A raise must start after the current salary's effective date.</span>
+              </div>
+            </li>
+            <li>
+              <mat-icon>currency_exchange</mat-icon>
+              <div>
+                <strong>No currency conversion</strong>
+                <span>Every employee is paid in one fixed currency; reports group by currency.</span>
+              </div>
+            </li>
+          </ul>
+        </section>
+      </aside>
+    </form>
+  }
+</section>

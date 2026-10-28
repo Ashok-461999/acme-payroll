@@ -1,0 +1,195 @@
+<section class="page">
+  <a class="back-link" routerLink="/employees">
+    <mat-icon>arrow_back</mat-icon>
+    Back to employees
+  </a>
+
+  @if (errorMessage) {
+    <div class="error-banner" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Could not load employee.</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <button mat-button type="button" (click)="load()">Try again</button>
+    </div>
+  }
+
+  @if (loading && !employee) {
+    <div class="panel loading-state">
+      <mat-spinner diameter="38"></mat-spinner>
+      <p>Loading employee profile…</p>
+    </div>
+  } @else if (employee) {
+    <header class="page-header profile-header">
+      <div class="profile-title">
+        <span class="profile-avatar">{{ initials(employee) }}</span>
+        <div>
+          <p class="eyebrow">Employee profile</p>
+          <h1>{{ employee.fullName }}</h1>
+          <p class="profile-meta">
+            <span class="code-chip">{{ employee.employeeCode }}</span>
+            {{ departmentName(employee) }} · {{ employee.jobTitle }} ·
+            {{ countryLabel(employee.country) }}
+          </p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a mat-stroked-button [routerLink]="['/employees', employee.id, 'edit']">
+          <mat-icon>edit</mat-icon>
+          Edit details
+        </a>
+        <button mat-flat-button color="primary" type="button" (click)="openSalaryDialog()">
+          <mat-icon>payments</mat-icon>
+          Change salary
+        </button>
+      </div>
+    </header>
+
+    <div class="profile-grid">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Employee details</h2>
+            <p>Personal and employment information held in the payroll system.</p>
+          </div>
+        </div>
+
+        <dl class="fact-grid">
+          <div class="fact">
+            <dt>Work email</dt>
+            <dd><a [href]="'mailto:' + employee.email">{{ employee.email }}</a></dd>
+          </div>
+          <div class="fact">
+            <dt>Department</dt>
+            <dd>{{ departmentName(employee) }}</dd>
+          </div>
+          <div class="fact">
+            <dt>Job title</dt>
+            <dd>{{ employee.jobTitle }}</dd>
+          </div>
+          <div class="fact">
+            <dt>Country</dt>
+            <dd>
+              <span class="country-code">{{ employee.country }}</span>
+              {{ countryLabel(employee.country) }}
+            </dd>
+          </div>
+          <div class="fact">
+            <dt>Hire date</dt>
+            <dd>{{ employee.hireDate | date: 'mediumDate' }}</dd>
+          </div>
+          <div class="fact">
+            <dt>Salary currency</dt>
+            <dd>
+              {{ employee.currency }}
+              <span class="fact-note">fixed</span>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <aside class="panel compensation-panel">
+        <p class="eyebrow">Current compensation</p>
+        <strong class="compensation-amount">
+          {{ employee.currentSalary | money: employee.currency }}
+        </strong>
+        <p class="compensation-meta">
+          Annual gross · effective
+          {{ employee.currentSalaryEffectiveDate | date: 'mediumDate' }}
+        </p>
+
+        <div class="compensation-divider"></div>
+
+        <div class="compensation-row">
+          <span>Currency</span>
+          <strong>{{ employee.currency }}</strong>
+        </div>
+        <div class="compensation-row">
+          <span>Salary records</span>
+          <strong>{{ history.length }}</strong>
+        </div>
+
+        <p class="compensation-note">
+          Salary changes are dated and keep their reason. The newest effective record is shown
+          here, while every earlier record stays in the history below.
+        </p>
+      </aside>
+    </div>
+
+    <section class="panel history-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Salary history</h2>
+          <p>
+            {{ history.length }} record{{ history.length === 1 ? '' : 's' }}, newest first.
+            Amounts are annual gross in {{ employee.currency }}.
+          </p>
+        </div>
+        <button mat-stroked-button type="button" (click)="openSalaryDialog()">
+          <mat-icon>add</mat-icon>
+          Add salary change
+        </button>
+      </div>
+
+      @if (salaryRows.length === 0) {
+        <div class="empty-history">
+          <mat-icon>history</mat-icon>
+          <p>No salary history is available for this employee.</p>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Effective date</th>
+                <th class="number">Amount</th>
+                <th class="number">Change</th>
+                <th>Reason</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of salaryRows; track row.id) {
+                <tr>
+                  <td>
+                    <strong class="date-cell">{{ row.effectiveDate | date: 'mediumDate' }}</strong>
+                    <span class="recorded-cell">
+                      recorded {{ row.createdAt | date: 'mediumDate' }}
+                    </span>
+                  </td>
+                  <td class="number amount-cell">
+                    {{ row.amount | money: row.currency }}
+                  </td>
+                  <td class="number">
+                    @if (row.change === null) {
+                      <span class="initial-label">Starting salary</span>
+                    } @else {
+                      <span class="change-value" [ngClass]="changeClass(row)">
+                        <mat-icon>{{ row.change > 0 ? 'arrow_upward' : row.change < 0 ? 'arrow_downward' : 'remove' }}</mat-icon>
+                        {{ row.change > 0 ? '+' : '' }}{{ row.change | money: row.currency }}
+                      </span>
+                      @if (row.changePercent !== null) {
+                        <span class="change-percent" [ngClass]="changeClass(row)">
+                          {{ row.changePercent > 0 ? '+' : '' }}{{ row.changePercent | number: '1.0-1' }}%
+                        </span>
+                      }
+                    }
+                  </td>
+                  <td><span class="chip reason-chip">{{ reasonLabel(row) }}</span></td>
+                  <td class="note-cell">{{ row.note || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <p class="history-footnote">
+        <mat-icon>lock</mat-icon>
+        Salary records are append-only. Corrections are made by adding a new dated change,
+        never by editing or deleting history.
+      </p>
+    </section>
+  }
+</section>
