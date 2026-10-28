@@ -512,8 +512,28 @@ a {
     inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
+.mat-mdc-unelevated-button.mat-primary:disabled {
+  --mat-button-filled-container-color: rgba(146, 190, 172, 0.16);
+  --mat-button-filled-label-text-color: #b7d0c5;
+  --mat-button-filled-disabled-container-color: rgba(146, 190, 172, 0.16);
+  --mat-button-filled-disabled-label-text-color: #b7d0c5;
+  color: #b7d0c5;
+  background: rgba(146, 190, 172, 0.16);
+  box-shadow: none;
+  opacity: 1;
+}
+
+.mat-mdc-unelevated-button.mat-primary:disabled:hover {
+  box-shadow: none;
+  filter: none;
+}
+
 .mat-mdc-unelevated-button.mat-primary .mat-icon {
   color: #042018;
+}
+
+.mat-mdc-unelevated-button.mat-primary:disabled .mat-icon {
+  color: #b7d0c5;
 }
 
 .mat-mdc-outlined-button {

@@ -29,7 +29,9 @@ Show the dashboard.
 
 ## 4. Employee profile and salary history (45 seconds)
 
-- Open an employee.
+- Open a seeded employee such as `EMP-00001`, not an employee you just created today.
+  A new employee's initial salary is effective today, so the next change has no valid
+  effective date until tomorrow.
 - Show current salary, effective date, profile facts, and history.
 - Click **Add salary change**.
 - Enter a later date, a higher amount, reason `Promotion`, and a short note.

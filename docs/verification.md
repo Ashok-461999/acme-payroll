@@ -17,10 +17,10 @@ currency-formatting pipe tests.
 
 | Check | Result |
 | --- | --- |
-| Angular production build | Passed; initial bundle **435.98 kB raw / 118.45 kB transfer**, no budget warning |
+| Angular production build | Passed; initial bundle **436.48 kB raw / 118.52 kB transfer**, no budget warning |
 | Lazy routes | Dashboard, employee list, employee form, and employee detail emitted as lazy chunks |
-| Single jar | `payroll-service-0.0.1-SNAPSHOT.jar`, 55,200,739 bytes |
-| Jar contents | `BOOT-INF/classes/static/index.html`, `main-3IHB5AXH.js`, and `styles-SEWK2RJN.css` present |
+| Single jar | `payroll-service-0.0.1-SNAPSHOT.jar`, 55,200,810 bytes |
+| Jar contents | `BOOT-INF/classes/static/index.html`, `main-3IHB5AXH.js`, and `styles-ZEMRGUKQ.css` present |
 
 ## PostgreSQL and seed
 
