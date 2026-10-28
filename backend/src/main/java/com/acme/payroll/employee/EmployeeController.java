@@ -2,10 +2,10 @@ package com.acme.payroll.employee;
 
 import com.acme.payroll.common.dto.PageResponse;
 import com.acme.payroll.employee.dto.CreateEmployeeRequest;
+import com.acme.payroll.employee.dto.EmployeeCreationResult;
 import com.acme.payroll.employee.dto.EmployeeResponse;
 import com.acme.payroll.employee.dto.UpdateEmployeeRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,10 +48,16 @@ public class EmployeeController {
 
     @PostMapping
     public ResponseEntity<EmployeeResponse> create(@Valid @RequestBody CreateEmployeeRequest request) {
-        EmployeeResponse created = employeeService.create(request);
+        EmployeeCreationResult result = employeeService.create(request);
+        EmployeeResponse employee = result.employee();
+        if (!result.created()) {
+            return ResponseEntity.ok()
+                    .header("Idempotent-Replay", "true")
+                    .body(employee);
+        }
         return ResponseEntity
-                .created(URI.create("/api/employees/" + created.id()))
-                .body(created);
+                .created(URI.create("/api/employees/" + employee.id()))
+                .body(employee);
     }
 
     @PutMapping("/{id}")

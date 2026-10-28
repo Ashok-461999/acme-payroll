@@ -1,11 +1,13 @@
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:${PORT:8080}}
+  shutdown: graceful
+  forward-headers-strategy: framework
 
 spring:
   application:
     name: payroll-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/employee_salary}
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:employee_salary}}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
   jpa:

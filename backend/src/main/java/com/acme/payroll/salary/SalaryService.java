@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class SalaryService {
@@ -27,7 +29,7 @@ public class SalaryService {
     }
 
     @Transactional
-    public SalaryRecordResponse changeSalary(Long employeeId, SalaryChangeRequest request) {
+    public SalaryChangeResult changeSalary(Long employeeId, SalaryChangeRequest request) {
         // The lock serialises concurrent changes for this employee so the latest
         // effective date and the current salary cannot diverge.
         Employee employee = employeeRepository.findByIdForUpdate(employeeId)
@@ -43,6 +45,30 @@ public class SalaryService {
         if (effectiveDate.isBefore(employee.getHireDate())) {
             throw new BusinessValidationException("effectiveDate", "must be on or after the hire date");
         }
+
+        if (effectiveDate.equals(employee.getCurrentSalaryEffectiveDate())
+                && amount.compareTo(employee.getCurrentSalary()) == 0) {
+            Optional<SalaryRecord> latest = salaryRecordRepository
+                    .findTopByEmployeeIdOrderByEffectiveDateDesc(employeeId);
+            if (latest.isPresent() && isIdenticalChange(latest.get(), request, amount, effectiveDate)) {
+                // (employee, effective date, amount, reason, note) is the natural key
+                // for a salary change. Replaying the same request returns the record
+                // that the first attempt created instead of failing the retry.
+                return new SalaryChangeResult(
+                        SalaryRecordResponse.from(latest.get(), employee.getCurrency()),
+                        false
+                );
+            }
+        }
+
+        if (effectiveDate.equals(employee.getCurrentSalaryEffectiveDate())) {
+            throw new BusinessValidationException(
+                    "effectiveDate",
+                    "already has a salary change effective on " + effectiveDate
+                            + "; use a later effective date"
+            );
+        }
+
         if (!effectiveDate.isAfter(employee.getCurrentSalaryEffectiveDate())) {
             throw new BusinessValidationException(
                     "effectiveDate",
@@ -63,7 +89,10 @@ public class SalaryService {
         employee.updateCurrentSalary(amount, effectiveDate);
         employeeRepository.save(employee);
 
-        return SalaryRecordResponse.from(record, employee.getCurrency());
+        return new SalaryChangeResult(
+                SalaryRecordResponse.from(record, employee.getCurrency()),
+                true
+        );
     }
 
     @Transactional(readOnly = true)
@@ -81,5 +110,15 @@ public class SalaryService {
             return null;
         }
         return note.trim();
+    }
+
+    private boolean isIdenticalChange(SalaryRecord record,
+                                      SalaryChangeRequest request,
+                                      BigDecimal amount,
+                                      LocalDate effectiveDate) {
+        return record.getAmount().compareTo(amount) == 0
+                && record.getEffectiveDate().equals(effectiveDate)
+                && record.getReason() == request.reason()
+                && Objects.equals(normaliseNote(record.getNote()), normaliseNote(request.note()));
     }
 }

@@ -5,7 +5,9 @@ import com.acme.payroll.common.exception.ResourceNotFoundException;
 import com.acme.payroll.employee.Department;
 import com.acme.payroll.employee.EmployeeController;
 import com.acme.payroll.employee.EmployeeService;
+import com.acme.payroll.employee.dto.EmployeeCreationResult;
 import com.acme.payroll.employee.dto.EmployeeResponse;
+import com.acme.payroll.salary.SalaryChangeResult;
 import com.acme.payroll.salary.SalaryController;
 import com.acme.payroll.salary.SalaryReason;
 import com.acme.payroll.salary.SalaryService;
@@ -57,7 +59,7 @@ class ApiControllerTest {
                 LocalDate.now().minusYears(1), new BigDecimal("100000.00"),
                 LocalDate.now().minusYears(1), Instant.now(), Instant.now()
         );
-        when(employeeService.create(any())).thenReturn(created);
+        when(employeeService.create(any())).thenReturn(new EmployeeCreationResult(created, true));
 
         mockMvc.perform(post("/api/employees")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -68,6 +70,41 @@ class ApiControllerTest {
                 .andExpect(jsonPath("$.employeeCode").value("EMP-1001"))
                 .andExpect(jsonPath("$.email").value("asha@example.com"))
                 .andExpect(jsonPath("$.currentSalary").value(100000.00));
+    }
+
+    @Test
+    void returnsOkForIdempotentCreateReplay() throws Exception {
+        EmployeeResponse existing = new EmployeeResponse(
+                1L, "EMP-1001", "Asha", "Patel", "Asha Patel", "asha@example.com",
+                Department.ENGINEERING, "Engineer", "IN", "INR",
+                LocalDate.now().minusYears(1), new BigDecimal("100000.00"),
+                LocalDate.now().minusYears(1), Instant.now(), Instant.now()
+        );
+        when(employeeService.create(any()))
+                .thenReturn(new EmployeeCreationResult(existing, false));
+
+        mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(employeeBody())))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Idempotent-Replay", "true"))
+                .andExpect(jsonPath("$.id").value(1));
+    }
+
+    @Test
+    void returnsNotFoundForUnknownApiPath() throws Exception {
+        mockMvc.perform(get("/api/does-not-exist"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void rejectsUnsupportedContentType() throws Exception {
+        mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("not json"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415));
     }
 
     @Test
@@ -133,7 +170,8 @@ class ApiControllerTest {
                 10L, new BigDecimal("120000.00"), "INR", LocalDate.now(),
                 SalaryReason.PROMOTION, "Promotion", Instant.now()
         );
-        when(salaryService.changeSalary(eq(1L), any())).thenReturn(response);
+        when(salaryService.changeSalary(eq(1L), any()))
+                .thenReturn(new SalaryChangeResult(response, true));
 
         mockMvc.perform(post("/api/employees/1/salaries")
                         .contentType(MediaType.APPLICATION_JSON)

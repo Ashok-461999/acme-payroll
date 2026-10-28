@@ -7,6 +7,7 @@ import com.acme.payroll.common.exception.BusinessValidationException;
 import com.acme.payroll.common.exception.ConflictException;
 import com.acme.payroll.common.exception.ResourceNotFoundException;
 import com.acme.payroll.employee.dto.CreateEmployeeRequest;
+import com.acme.payroll.employee.dto.EmployeeCreationResult;
 import com.acme.payroll.employee.dto.EmployeeResponse;
 import com.acme.payroll.employee.dto.UpdateEmployeeRequest;
 import com.acme.payroll.salary.SalaryReason;
@@ -22,7 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -44,7 +45,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public EmployeeResponse create(CreateEmployeeRequest request) {
+    public EmployeeCreationResult create(CreateEmployeeRequest request) {
         String employeeCode = request.employeeCode().trim().toUpperCase(Locale.ROOT);
         String email = normaliseEmail(request.email());
         String country = IsoReferenceData.requireCountry(request.country());
@@ -67,7 +68,17 @@ public class EmployeeService {
                     "must not be in the future"
             );
         }
-        if (employeeRepository.existsByEmployeeCode(employeeCode)) {
+
+        Optional<Employee> existingByCode = employeeRepository.findByEmployeeCode(employeeCode);
+        if (existingByCode.isPresent()) {
+            Employee existing = existingByCode.get();
+            if (isIdenticalCreateRequest(
+                    existing, request, employeeCode, email, country, currency, initialSalary
+            )) {
+                // Employee code is the natural idempotency key. Replaying an identical
+                // create returns the original record instead of duplicating the employee.
+                return new EmployeeCreationResult(EmployeeResponse.from(existing), false);
+            }
             throw new ConflictException("Employee code already exists: " + employeeCode);
         }
         if (employeeRepository.existsByEmail(email)) {
@@ -98,7 +109,7 @@ public class EmployeeService {
         );
         salaryRecordRepository.save(initialRecord);
 
-        return EmployeeResponse.from(employee);
+        return new EmployeeCreationResult(EmployeeResponse.from(employee), true);
     }
 
     @Transactional
@@ -194,5 +205,25 @@ public class EmployeeService {
 
     private String normaliseEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isIdenticalCreateRequest(Employee existing,
+                                             CreateEmployeeRequest request,
+                                             String employeeCode,
+                                             String email,
+                                             String country,
+                                             String currency,
+                                             BigDecimal initialSalary) {
+        return existing.getEmployeeCode().equals(employeeCode)
+                && existing.getFirstName().equals(request.firstName().trim())
+                && existing.getLastName().equals(request.lastName().trim())
+                && existing.getEmail().equals(email)
+                && existing.getDepartment() == request.department()
+                && existing.getJobTitle().equals(request.jobTitle().trim())
+                && existing.getCountry().equals(country)
+                && existing.getCurrency().equals(currency)
+                && existing.getHireDate().equals(request.hireDate())
+                && existing.getCurrentSalary().compareTo(initialSalary) == 0
+                && existing.getCurrentSalaryEffectiveDate().equals(request.initialSalaryEffectiveDate());
     }
 }

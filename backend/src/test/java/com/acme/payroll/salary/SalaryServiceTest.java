@@ -52,8 +52,10 @@ class SalaryServiceTest {
                 "  Promotion to senior engineer  "
         );
 
-        SalaryRecordResponse response = salaryService.changeSalary(1L, request);
+        SalaryChangeResult result = salaryService.changeSalary(1L, request);
+        SalaryRecordResponse response = result.record();
 
+        assertThat(result.created()).isTrue();
         assertThat(response.amount()).isEqualByComparingTo("120000.00");
         assertThat(response.currency()).isEqualTo("USD");
         assertThat(response.effectiveDate()).isEqualTo(effectiveDate);
@@ -115,7 +117,7 @@ class SalaryServiceTest {
         );
         assertThatThrownBy(() -> salaryService.changeSalary(1L, sameDate))
                 .isInstanceOf(BusinessValidationException.class)
-                .hasMessageContaining("after the current salary effective date");
+                .hasMessageContaining("already has a salary change effective on");
 
         SalaryChangeRequest earlierDate = new SalaryChangeRequest(
                 new BigDecimal("120000.00"),
@@ -127,6 +129,60 @@ class SalaryServiceTest {
                 .isInstanceOf(BusinessValidationException.class)
                 .hasMessageContaining("after the current salary effective date");
         verify(salaryRecordRepository, never()).save(any());
+    }
+
+    @Test
+    void replaysAnIdenticalSalaryChangeWithoutWritingAgain() {
+        LocalDate today = LocalDate.now();
+        Employee employee = new Employee(
+                "EMP-1002",
+                "Asha",
+                "Patel",
+                "asha@example.com",
+                Department.ENGINEERING,
+                "Engineer",
+                "US",
+                "USD",
+                today.minusYears(2),
+                new BigDecimal("120000.00"),
+                today
+        );
+        SalaryRecord latest = new SalaryRecord(
+                employee,
+                new BigDecimal("120000.00"),
+                today,
+                SalaryReason.PROMOTION,
+                "Promotion"
+        );
+        when(employeeRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(employee));
+        when(salaryRecordRepository.findTopByEmployeeIdOrderByEffectiveDateDesc(1L))
+                .thenReturn(Optional.of(latest));
+
+        SalaryChangeRequest request = new SalaryChangeRequest(
+                new BigDecimal("120000.00"),
+                today,
+                SalaryReason.PROMOTION,
+                "  Promotion  "
+        );
+
+        SalaryChangeResult result = salaryService.changeSalary(1L, request);
+
+        assertThat(result.created()).isFalse();
+        assertThat(result.record().amount()).isEqualByComparingTo("120000.00");
+        assertThat(result.record().reason()).isEqualTo(SalaryReason.PROMOTION);
+
+        SalaryChangeRequest differentReason = new SalaryChangeRequest(
+                new BigDecimal("120000.00"),
+                today,
+                SalaryReason.ANNUAL_REVIEW,
+                "Promotion"
+        );
+        assertThatThrownBy(() -> salaryService.changeSalary(1L, differentReason))
+                .isInstanceOf(BusinessValidationException.class)
+                .hasMessageContaining("already has a salary change effective on");
+
+        verify(salaryRecordRepository, never()).save(any());
+        verify(employeeRepository, never()).save(any());
     }
 
     @Test

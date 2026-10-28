@@ -33,7 +33,12 @@ public class SalaryController {
     public ResponseEntity<SalaryRecordResponse> changeSalary(
             @PathVariable("employeeId") Long employeeId,
             @Valid @RequestBody SalaryChangeRequest request) {
-        SalaryRecordResponse created = salaryService.changeSalary(employeeId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        SalaryChangeResult result = salaryService.changeSalary(employeeId, request);
+        if (!result.created()) {
+            return ResponseEntity.ok()
+                    .header("Idempotent-Replay", "true")
+                    .body(result.record());
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(result.record());
     }
 }

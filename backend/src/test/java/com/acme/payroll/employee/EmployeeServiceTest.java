@@ -5,6 +5,7 @@ import com.acme.payroll.common.exception.BusinessValidationException;
 import com.acme.payroll.common.exception.ConflictException;
 import com.acme.payroll.common.exception.ResourceNotFoundException;
 import com.acme.payroll.employee.dto.CreateEmployeeRequest;
+import com.acme.payroll.employee.dto.EmployeeCreationResult;
 import com.acme.payroll.employee.dto.EmployeeResponse;
 import com.acme.payroll.employee.dto.UpdateEmployeeRequest;
 import com.acme.payroll.salary.SalaryReason;
@@ -57,7 +58,7 @@ class EmployeeServiceTest {
                 "inr"
         );
 
-        EmployeeResponse response = employeeService.create(request);
+        EmployeeResponse response = employeeService.create(request).employee();
 
         assertThat(response.employeeCode()).isEqualTo("EMP-1001");
         assertThat(response.email()).isEqualTo("asha@example.com");
@@ -77,12 +78,40 @@ class EmployeeServiceTest {
 
     @Test
     void rejectsDuplicateEmployeeCode() {
-        when(employeeRepository.existsByEmployeeCode("EMP-1001")).thenReturn(true);
+        when(employeeRepository.findByEmployeeCode("EMP-1001"))
+                .thenReturn(Optional.of(employee()));
 
         assertThatThrownBy(() -> employeeService.create(validCreateRequest()))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("EMP-1001");
 
+        verify(employeeRepository, never()).save(any());
+        verify(salaryRecordRepository, never()).save(any());
+    }
+
+    @Test
+    void replaysAnIdenticalCreateRequestWithoutDuplicating() {
+        LocalDate hireDate = LocalDate.now().minusYears(1);
+        Employee existing = new Employee(
+                "EMP-1001",
+                "Asha",
+                "Patel",
+                "asha@example.com",
+                Department.ENGINEERING,
+                "Engineer",
+                "IN",
+                "INR",
+                hireDate,
+                new BigDecimal("100000.00"),
+                hireDate
+        );
+        when(employeeRepository.findByEmployeeCode("EMP-1001"))
+                .thenReturn(Optional.of(existing));
+
+        EmployeeCreationResult result = employeeService.create(validCreateRequest());
+
+        assertThat(result.created()).isFalse();
+        assertThat(result.employee().employeeCode()).isEqualTo("EMP-1001");
         verify(employeeRepository, never()).save(any());
         verify(salaryRecordRepository, never()).save(any());
     }

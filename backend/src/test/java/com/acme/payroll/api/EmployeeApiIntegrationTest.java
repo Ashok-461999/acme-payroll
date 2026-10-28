@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -339,6 +340,56 @@ class EmployeeApiIntegrationTest {
 
         assertThatThrownBy(() -> salaryRecordRepository.saveAndFlush(duplicateDate))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void replaysIdenticalWritesWithoutCreatingDuplicates() throws Exception {
+        Map<String, Object> employeeBody = employeeBody(
+                "EMP-6001", "idempotent@example.com", Department.ENGINEERING, "US", "USD",
+                new BigDecimal("90000.00")
+        );
+        String employeeJson = objectMapper.writeValueAsString(employeeBody);
+
+        MvcResult firstCreate = mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(employeeJson))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long employeeId = objectMapper.readTree(firstCreate.getResponse().getContentAsString())
+                .get("id").asLong();
+
+        mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(employeeJson))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Idempotent-Replay", "true"))
+                .andExpect(jsonPath("$.id").value(employeeId));
+
+        mockMvc.perform(get("/api/employees").param("search", "EMP-6001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        String salaryJson = objectMapper.writeValueAsString(
+                salaryBody(new BigDecimal("95000.00"), LocalDate.now(), "ANNUAL_REVIEW")
+        );
+        MvcResult firstSalary = mockMvc.perform(post("/api/employees/{id}/salaries", employeeId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(salaryJson))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long salaryId = objectMapper.readTree(firstSalary.getResponse().getContentAsString())
+                .get("id").asLong();
+
+        mockMvc.perform(post("/api/employees/{id}/salaries", employeeId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(salaryJson))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Idempotent-Replay", "true"))
+                .andExpect(jsonPath("$.id").value(salaryId));
+
+        mockMvc.perform(get("/api/employees/{id}/salaries", employeeId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
     }
 
     private long createEmployee(String code,

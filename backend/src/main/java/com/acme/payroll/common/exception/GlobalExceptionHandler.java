@@ -9,10 +9,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -76,6 +80,33 @@ public class GlobalExceptionHandler {
         String message = "The request conflicts with existing data. "
                 + "Check the employee code, email, and salary effective date.";
         return build(HttpStatus.CONFLICT, message, request, Map.of());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException exception,
+                                                     HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, "Resource not found", request, Map.of());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException exception,
+                                                             HttpServletRequest request) {
+        return build(HttpStatus.METHOD_NOT_ALLOWED, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException exception,
+                                                                HttpServletRequest request) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Content type must be application/json", request, Map.of());
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiError> handleMissingParameter(MissingServletRequestParameterException exception,
+                                                           HttpServletRequest request) {
+        String message = "Parameter '" + exception.getParameterName() + "' is required";
+        return build(HttpStatus.BAD_REQUEST, message, request,
+                Map.of(exception.getParameterName(), message));
     }
 
     @ExceptionHandler(Exception.class)
