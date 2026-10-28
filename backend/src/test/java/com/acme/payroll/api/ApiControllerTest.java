@@ -144,14 +144,18 @@ class ApiControllerTest {
     @Test
     void returnsConflictForDuplicateIdentity() throws Exception {
         when(employeeService.create(any()))
-                .thenThrow(new ConflictException("Employee code already exists: EMP-1001"));
+                .thenThrow(new ConflictException(
+                        "employeeCode", "Employee code already exists: EMP-1001"
+                ));
 
         mockMvc.perform(post("/api/employees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(employeeBody())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.message").value("Employee code already exists: EMP-1001"));
+                .andExpect(jsonPath("$.message").value("Employee code already exists: EMP-1001"))
+                .andExpect(jsonPath("$.fieldErrors.employeeCode")
+                        .value("Employee code already exists: EMP-1001"));
     }
 
     @Test

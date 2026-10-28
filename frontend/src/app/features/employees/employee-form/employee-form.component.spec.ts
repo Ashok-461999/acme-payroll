@@ -1,9 +1,10 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import type { Employee } from '../../../core/models/employee.model';
 import { EmployeeService } from '../../../core/services/employee.service';
@@ -115,8 +116,52 @@ describe('EmployeeFormComponent', () => {
     });
 
     component.submit();
-
     expect(component.initialSalaryEffectiveDate.hasError('beforeHireDate')).toBeTrue();
     expect(employeeService.create).not.toHaveBeenCalled();
+
+
+  });
+
+  it('shows duplicate email conflicts as a field-level error', () => {
+    employeeService.create.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 409,
+            error: {
+              timestamp: '2026-10-28T00:00:00Z',
+              status: 409,
+              error: 'Conflict',
+              message: 'Email already exists: katherine@acme.test',
+              path: '/api/employees',
+              fieldErrors: {
+                email: 'Email already exists: katherine@acme.test'
+              }
+            }
+          })
+      )
+    );
+
+    component.form.patchValue({
+      employeeCode: 'EMP-30003',
+      firstName: 'Katherine',
+      lastName: 'Johnson',
+      email: 'katherine@acme.test',
+      department: 'ENGINEERING',
+      jobTitle: 'Data Analyst',
+      country: 'US',
+      currency: 'USD',
+      hireDate: new Date(2020, 0, 15),
+      initialSalary: 100000,
+      initialSalaryEffectiveDate: new Date(2020, 0, 15)
+    });
+
+    component.submit();
+
+    expect(component.form.controls.email.hasError('server')).toBeTrue();
+    expect(component.form.controls.email.getError('server'))
+      .toBe('Email already exists: katherine@acme.test');
+    expect(component.generalError).toContain('Some fields need attention');
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 });

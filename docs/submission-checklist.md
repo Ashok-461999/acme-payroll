@@ -19,7 +19,7 @@ This maps the assessment deliverables to evidence in this repository.
 | Performance considerations | Complete | Live warm timings: employee list 183-494 ms; analytics 390-499 ms. See [verification.md](verification.md). |
 | Screenshots | Complete | [Dashboard](screenshots/dashboard-desktop.png), [employee list](screenshots/employee-list-desktop.png), [employee detail](screenshots/employee-detail-desktop.png), and [mobile dashboard](screenshots/dashboard-mobile.png). |
 | README / setup instructions | Complete | [../README.md](../README.md); frontend-specific notes in [../frontend/README.md](../frontend/README.md). |
-| Tests | Complete | 52 backend tests and 15 frontend specs; commands and evidence in [verification.md](verification.md). |
+| Tests | Complete | 52 backend tests and 16 frontend specs; commands and evidence in [verification.md](verification.md). |
 | Production build | Complete | Single jar contains the Angular production bundle; SPA deep links return the app shell. |
 | Deployment configuration | Complete | [../render.yaml](../render.yaml) defines the Render Docker service and Neon-backed secret variables; no credentials are committed. |
 

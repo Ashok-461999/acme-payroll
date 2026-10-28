@@ -38,7 +38,7 @@
     <form class="form-layout" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="form-column">
         @if (generalError) {
-          <div class="error-banner" role="alert">
+          <div #saveError class="error-banner" role="alert" tabindex="-1">
             <mat-icon>error_outline</mat-icon>
             <div>
               <strong>Save failed.</strong>

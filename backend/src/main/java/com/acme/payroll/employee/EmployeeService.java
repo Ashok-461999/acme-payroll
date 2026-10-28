@@ -79,10 +79,10 @@ public class EmployeeService {
                 // create returns the original record instead of duplicating the employee.
                 return new EmployeeCreationResult(EmployeeResponse.from(existing), false);
             }
-            throw new ConflictException("Employee code already exists: " + employeeCode);
+            throw new ConflictException("employeeCode", "Employee code already exists: " + employeeCode);
         }
         if (employeeRepository.existsByEmail(email)) {
-            throw new ConflictException("Email already exists: " + email);
+            throw new ConflictException("email", "Email already exists: " + email);
         }
 
         Employee employee = new Employee(
@@ -121,7 +121,7 @@ public class EmployeeService {
         String country = IsoReferenceData.requireCountry(request.country());
 
         if (employeeRepository.existsByEmailAndIdNot(email, employeeId)) {
-            throw new ConflictException("Email already exists: " + email);
+            throw new ConflictException("email", "Email already exists: " + email);
         }
 
         employee.updateProfile(

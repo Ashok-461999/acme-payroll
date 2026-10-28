@@ -34,7 +34,7 @@ The following was exercised locally during implementation:
 - Backend Maven suite passing: 52 tests, 0 failures/errors/skips across 7 suites,
   including service, controller, H2 integration, and seeder tests.
 - Angular production build passing with lazy-loaded routes and no bundle-budget warning.
-- Frontend Karma suite passing headlessly: 15/15 specs.
+- Frontend Karma suite passing headlessly: 16/16 specs.
 - PostgreSQL 17 startup with Flyway and the deterministic 10,000-employee seed.
 - API checks: total employees 10,000; 10 currencies; headcount sum 10,000; search by
   `EMP-00001`; engineering filter 1,034; GBP filter 1,000.

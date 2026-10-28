@@ -8,7 +8,7 @@ Angular CLI 20.3.41, PostgreSQL 17.4, Neon PostgreSQL 17.
 | Suite | Command | Result |
 | --- | --- | --- |
 | Backend | `cd backend; mvn -q test` | **52 tests, 0 failures, 0 errors, 0 skipped** across 7 Surefire suites |
-| Frontend | `cd frontend; npm test -- --no-watch --browsers=ChromeHeadless` | **15/15 specs passed** |
+| Frontend | `cd frontend; npm test -- --no-watch --browsers=ChromeHeadless` | **16/16 specs passed** |
 
 The frontend suite includes create-form, salary-dialog, service, app-shell, and the
 currency-formatting pipe tests.
@@ -17,10 +17,10 @@ currency-formatting pipe tests.
 
 | Check | Result |
 | --- | --- |
-| Angular production build | Passed; initial bundle **436.48 kB raw / 118.52 kB transfer**, no budget warning |
+| Angular production build | Passed; initial bundle **436.48 kB raw / 118.51 kB transfer**, no budget warning |
 | Lazy routes | Dashboard, employee list, employee form, and employee detail emitted as lazy chunks |
-| Single jar | `payroll-service-0.0.1-SNAPSHOT.jar`, 55,200,810 bytes |
-| Jar contents | `BOOT-INF/classes/static/index.html`, `main-3IHB5AXH.js`, and `styles-ZEMRGUKQ.css` present |
+| Single jar | `payroll-service-0.0.1-SNAPSHOT.jar`, 55,201,167 bytes |
+| Jar contents | `BOOT-INF/classes/static/index.html`, `main-74AO6IBO.js`, and `styles-ZEMRGUKQ.css` present |
 
 ## PostgreSQL and seed
 

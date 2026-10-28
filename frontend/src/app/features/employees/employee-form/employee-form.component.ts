@@ -1,5 +1,5 @@
 import { CommonModule, formatDate } from '@angular/common';
-import { Component, DestroyRef, OnInit } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
@@ -60,6 +60,8 @@ export class EmployeeFormComponent implements OnInit {
   saving = false;
   loadError = '';
   generalError = '';
+
+  @ViewChild('saveError') private saveErrorBanner?: ElementRef<HTMLElement>;
 
   readonly form = new FormGroup({
     employeeCode: new FormControl('', {
@@ -367,6 +369,12 @@ export class EmployeeFormComponent implements OnInit {
       mapped > 0
         ? 'Some fields need attention. Review the messages below and try again.'
         : apiErrorMessage(error, 'Could not save this employee. Please try again.');
+
+    setTimeout(() => {
+      const banner = this.saveErrorBanner?.nativeElement;
+      banner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      banner?.focus({ preventScroll: true });
+    });
   }
 
   private clearServerErrors(): void {

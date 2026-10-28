@@ -175,7 +175,9 @@ class EmployeeApiIntegrationTest {
                                 new BigDecimal("90000.00")
                         ))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Employee code already exists: EMP-3001"));
+                .andExpect(jsonPath("$.message").value("Employee code already exists: EMP-3001"))
+                .andExpect(jsonPath("$.fieldErrors.employeeCode")
+                        .value("Employee code already exists: EMP-3001"));
     }
 
     @Test
@@ -190,7 +192,9 @@ class EmployeeApiIntegrationTest {
                                 new BigDecimal("90000.00")
                         ))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Email already exists: same@example.com"));
+                .andExpect(jsonPath("$.message").value("Email already exists: same@example.com"))
+                .andExpect(jsonPath("$.fieldErrors.email")
+                        .value("Email already exists: same@example.com"));
     }
 
     @Test

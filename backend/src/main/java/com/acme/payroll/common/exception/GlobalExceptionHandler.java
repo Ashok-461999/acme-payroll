@@ -36,7 +36,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiError> handleConflict(ConflictException exception,
                                                    HttpServletRequest request) {
-        return build(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        if (exception.getField() != null) {
+            fieldErrors.put(exception.getField(), exception.getMessage());
+        }
+        return build(HttpStatus.CONFLICT, exception.getMessage(), request, fieldErrors);
     }
 
     @ExceptionHandler(BusinessValidationException.class)
