@@ -1,0 +1,15 @@
+.git
+.gitignore
+.github
+.idea
+.vscode
+backend/target
+backend/src/main/resources/static
+frontend/.angular
+frontend/dist
+frontend/node_modules
+docs
+README.md
+*.log
+.env
+.env.*

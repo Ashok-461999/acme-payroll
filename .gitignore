@@ -24,3 +24,4 @@ Thumbs.db
 .env
 .env.*
 *.local
+.aws-deploy.local.json

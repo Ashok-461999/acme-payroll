@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: acme-payroll
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: acme-payroll-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: acme-payroll-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: acme-payroll-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: acme-payroll-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: acme-payroll-db
+          property: password
+      - key: APP_SEED_ENABLED
+        value: "true"
+      - key: APP_SEED_COUNT
+        value: "10000"
+
+databases:
+  - name: acme-payroll-db
+    databaseName: employee_salary
+    user: acme_payroll
+    plan: free
+    region: singapore
+    postgresMajorVersion: "17"
