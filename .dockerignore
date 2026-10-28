@@ -3,6 +3,9 @@
 .github
 .idea
 .vscode
+.agents
+opencode.json
+skills-lock.json
 backend/target
 backend/src/main/resources/static
 frontend/.angular

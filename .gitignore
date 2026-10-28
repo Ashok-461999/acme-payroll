@@ -25,3 +25,8 @@ Thumbs.db
 .env.*
 *.local
 .aws-deploy.local.json
+
+# Local AI agent tooling
+.agents/
+opencode.json
+skills-lock.json
