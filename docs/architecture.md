@@ -80,6 +80,9 @@ updated in the same transaction as a new history row, and tests verify they agre
   makes overlap impossible under the increasing-date rule.
 - Indexes on `department`, `country`, `currency`, and `(employee_id, effective_date)`
   support filters, grouping, and history reads.
+- Composite indexes on `(last_name, first_name, id)`, `(currency, department)`, and
+  `(currency, country)` support stable name ordering and per-currency dashboard
+  aggregates without adding indexes for every filter combination.
 - Name/email search uses `LIKE '%term%'`; at 10,000 rows a sequential scan is a few
   milliseconds. A trigram index would add operational cost without a measured need.
 
@@ -114,8 +117,30 @@ revisited.
 
 A salary record is a point-in-time change. Each record's period runs until the next
 record's date. Requiring each new date to be strictly after the latest date makes
-overlaps impossible and keeps the write path simple. The trade-off is no backdating or
-future scheduling, which are documented as out of scope.
+overlaps impossible and keeps the write path simple. A late-recorded raise may use a past
+date as long as it is still after the latest existing record. Inserting a change between
+existing records, editing history, and future scheduling remain out of scope because
+they require an explicit correction and audit workflow.
+
+### Idempotency and concurrency
+
+The write paths use business natural keys rather than a separate idempotency-key table:
+
+- Employee creation is keyed by normalised employee code. A retry whose fields, initial
+  salary, and effective date still match the stored employee returns the original
+  employee with `200 OK` and `Idempotent-Replay: true`. A same-code request with
+  different details is a real conflict (`409`), so a stale retry cannot silently
+  overwrite or ignore newer data.
+- Salary changes are keyed by employee, effective date, amount, reason, and normalised
+  note. The exact retry is recognised after the employee row is locked and returns the
+  existing salary record with `200 OK` and `Idempotent-Replay: true`. The same date with
+  a different payload is rejected, preserving the one-record-per-date rule.
+
+A database unique constraint is the final guard against duplicate identities and salary
+dates. In a simultaneous employee-create race, one transaction wins and the other gets a
+clear `409`; no duplicate is written. Salary changes additionally take a pessimistic row
+lock so two concurrent changes cannot both choose the same next effective date or
+overwrite `current_salary` independently.
 
 ### No currency conversion
 
@@ -141,8 +166,10 @@ service container for a second integration pass.
 
 For the assessment demo, the Angular production build is copied into
 `backend/src/main/resources/static` and served by Spring Boot. This avoids CORS and a
-separate web server in the deployed artifact. During development, `ng serve` uses a proxy
-to keep hot reload.
+separate web server in the deployed artifact. `SpaForwardFilter` forwards non-API GET
+routes such as `/employees/42` to `index.html` so browser refreshes work; `/api`
+requests never fall through to the SPA. During development, `ng serve` uses a proxy to
+keep hot reload.
 
 ## Performance approach
 
@@ -150,6 +177,6 @@ to keep hot reload.
 - The list query is paginated and backed by simple indexes.
 - Analytics perform three grouped SQL queries, not one query per employee.
 - The UI debounces text search and requests only one page at a time.
-- Measured timings are recorded in the README after end-to-end verification.
+- The README includes a repeatable timing check for the local environment.
 
 No cache, message broker, or distributed component is needed at this scale.

@@ -43,6 +43,8 @@ reliable data entry and clear reporting rather than employee self-service.
 - A deterministic seed process creates exactly 10,000 employees for demonstration.
 - PostgreSQL stores all data; Flyway owns the schema.
 - The Angular application and Spring Boot API can be built and run locally.
+- The production build serves the Angular application and API from one Spring Boot jar.
+- Deployment artifacts cover Docker Compose, Render, and AWS Elastic Beanstalk + RDS.
 - Automated backend and frontend tests cover the rules described below.
 
 ## Domain rules
@@ -57,6 +59,7 @@ reliable data entry and clear reporting rather than employee self-service.
 
 ### Money and currency
 
+- Salary amounts represent annual gross pay in the employee's salary currency.
 - Salary amounts use `BigDecimal` and `NUMERIC(15,2)` database columns.
 - Amounts must be positive, with at most two decimal places.
 - Every employee has one explicit ISO 4217 salary currency. All of their salary records
@@ -71,9 +74,10 @@ reliable data entry and clear reporting rather than employee self-service.
   and not in the future.
 - Two salary records for the same employee cannot share an effective date. This is
   enforced by a unique database constraint as well as the service rule.
-- Because dates strictly increase, salary periods cannot overlap. Backdated changes and
-  future-dated changes are deliberately not supported in this version; correcting a
-  historical record would need an explicit correction workflow and audit trail.
+- Because dates strictly increase, salary periods cannot overlap. A change may be
+  recorded late with an effective date in the past, provided it remains after the
+  current record and is not earlier than the hire date. Existing records are never
+  edited, deleted, or reordered, and future-dated changes are not supported.
 
 ### Integrity
 
@@ -81,6 +85,13 @@ reliable data entry and clear reporting rather than employee self-service.
   are enforced in PostgreSQL.
 - Salary changes lock the employee row and write the history row plus current-salary
   fields in one transaction, preventing lost updates and inconsistent current values.
+- Exact retries are safe. Employee creation uses the employee code as its natural key:
+  an identical create returns the original employee with `200` and an
+  `Idempotent-Replay: true` header; a differing payload with the same code is `409`.
+  Salary changes use `(employee, effective date, amount, reason, note)` as their natural
+  key: an exact replay returns the original record with `200` and
+  `Idempotent-Replay: true`, while a different change on the same effective date is
+  rejected.
 - API errors are returned in a consistent JSON shape with field-level validation details.
 
 ## Deliberately out of scope
@@ -95,7 +106,7 @@ reliable data entry and clear reporting rather than employee self-service.
 | Bulk import/export | Useful later, but the seed process proves 10k-scale operation. |
 | Scheduled or future-dated raises | Requires a scheduler and a policy for unapproved future records. |
 | Microservices, Kafka, Redis, CQRS | A modular monolith easily handles 10k employees and keeps the system explainable. |
-| Public cloud deployment credentials | Deployment artifacts and local production-mode instructions are included; a public URL requires account access outside the repository. |
+| Public cloud credentials | Deployment templates/scripts and local production-mode instructions are included; applying them requires account access outside the repository. |
 
 ## Acceptance criteria
 
@@ -106,5 +117,7 @@ reliable data entry and clear reporting rather than employee self-service.
 3. Duplicate codes/emails, invalid salaries, invalid dates, missing employees, and
    malformed requests produce clear 4xx responses.
 4. Payroll totals for different currencies remain separate.
-5. Backend tests and frontend tests run from documented commands and pass.
-6. The production build serves the Angular application and API from one Spring Boot jar.
+5. Retrying an identical employee create or salary change does not duplicate data; it
+   returns the original resource with `Idempotent-Replay: true`.
+6. Backend tests and frontend tests run from documented commands and pass.
+7. The production build serves the Angular application and API from one Spring Boot jar.
