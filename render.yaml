@@ -9,35 +9,13 @@ services:
     healthCheckPath: /
     autoDeploy: true
     envVars:
-      - key: DB_HOST
-        fromDatabase:
-          name: acme-payroll-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: acme-payroll-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: acme-payroll-db
-          property: database
+      - key: DB_URL
+        sync: false
       - key: DB_USERNAME
-        fromDatabase:
-          name: acme-payroll-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: acme-payroll-db
-          property: password
+        sync: false
       - key: APP_SEED_ENABLED
         value: "true"
       - key: APP_SEED_COUNT
         value: "10000"
-
-databases:
-  - name: acme-payroll-db
-    databaseName: employee_salary
-    user: acme_payroll
-    plan: free
-    region: singapore
-    postgresMajorVersion: "17"
