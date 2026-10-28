@@ -7,7 +7,7 @@ and URL columns after deployment and recording.
 | --- | --- | --- |
 | Fully functional software | Local: complete. AWS: pending deployment. | Spring Boot + PostgreSQL + Angular app; 10,000-employee seed; runtime checks recorded in [verification.md](verification.md). |
 | Public repository link | Pending | No git remote is configured yet. Create a public GitHub repository, add it as `origin`, and push the commit history. |
-| Incremental commits | In progress | Earlier commits cover backend/docs; the frontend, submission docs, and deployment assets are committed in small logical slices. |
+| Incremental commits | Complete | Eight commits cover scope/docs, backend APIs, seed, retry safety, frontend, submission evidence, and deployment assets. |
 | Publicly deployed application | Pending | AWS Elastic Beanstalk + RDS deployment is automated in [../infra/aws-elastic-beanstalk.yaml](../infra/aws-elastic-beanstalk.yaml) and [../scripts/deploy-aws.ps1](../scripts/deploy-aws.ps1); requires AWS credentials and budget approval. |
 | Demo video | Pending | Script: [demo-script.md](demo-script.md). Record after the public URL is live. |
 | One-page requirements document | Complete | [one-page-requirements.md](one-page-requirements.md). |
