@@ -23,8 +23,9 @@ back-office tool, not employee self-service.
   currency; department and country breakdowns for a selected currency.
 - **Demo data:** a deterministic 10,000-employee seed with realistic names, departments,
   countries, currencies, hire dates, and salary history.
-- **Delivery:** PostgreSQL + Flyway, automated tests, a single production jar, Docker and
-  AWS deployment artifacts, and the documentation listed in the submission checklist.
+- **Delivery:** PostgreSQL + Flyway, automated tests, a single production jar, Docker
+  Compose, a live Render + Neon deployment, and the documentation listed in the
+  submission checklist.
 
 ## Rules
 

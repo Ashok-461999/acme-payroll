@@ -7,8 +7,8 @@ sections.
 ## 1. Introduction (20 seconds)
 
 > "This is ACME People, a salary management application for one HR manager and 10,000
-> employees across 10 countries. It uses Spring Boot, PostgreSQL, and Angular, and the
-> production build runs as one application."
+> employees across 10 countries. It uses Spring Boot, Neon PostgreSQL, and Angular, and
+> the production build runs as one application on Render."
 
 Show the dashboard.
 
@@ -52,15 +52,17 @@ Show the repository in the editor or terminal:
 - `docs/one-page-requirements.md`, `docs/architecture.md`, and `docs/ai-workflow.md`.
 - `mvn test` result and `npm test` result.
 - The Flyway migrations and 10,000-employee seed.
-- The AWS deployment resources in `infra/` and `scripts/deploy-aws.ps1`.
+- The live Render service settings, `render.yaml`, and the Neon database connection
+  (without showing secrets).
 
 ## 7. Close (15 seconds)
 
-> "The app is deployed at the URL in the submission, the repository is public, and the
-> README documents local, Docker, Render, and AWS deployment. Thank you."
+> "The app is deployed on Render with Neon PostgreSQL, the repository is public, and the
+> README documents local, Docker, Render, and optional AWS deployment. Thank you."
 
 ## Pre-record checklist
 
+- Open the live URL once and wait for the Render Free service to wake.
 - Seed is complete and the dashboard shows 10,000 employees.
 - Browser console has no errors.
 - No localhost URLs or terminal secrets are visible.

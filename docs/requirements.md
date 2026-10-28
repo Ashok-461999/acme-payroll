@@ -44,7 +44,8 @@ reliable data entry and clear reporting rather than employee self-service.
 - PostgreSQL stores all data; Flyway owns the schema.
 - The Angular application and Spring Boot API can be built and run locally.
 - The production build serves the Angular application and API from one Spring Boot jar.
-- Deployment artifacts cover Docker Compose, Render, and AWS Elastic Beanstalk + RDS.
+- Deployment artifacts cover Docker Compose and Render + Neon; AWS Elastic Beanstalk +
+  RDS remains an optional, unprovisioned fallback.
 - Automated backend and frontend tests cover the rules described below.
 
 ## Domain rules

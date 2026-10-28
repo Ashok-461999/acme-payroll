@@ -1,7 +1,7 @@
 # Verification Evidence
 
 Date: 2026-10-28. Environment: Windows 11, Java 21.0.6, Maven 3.9.9, Node 22.22.0,
-Angular CLI 20.3.41, PostgreSQL 17.4.
+Angular CLI 20.3.41, PostgreSQL 17.4, Neon PostgreSQL 17.
 
 ## Automated tests
 
@@ -24,9 +24,10 @@ currency-formatting pipe tests.
 
 ## PostgreSQL and seed
 
-Verified against PostgreSQL 17.4 on 2026-10-28:
+Verified against local PostgreSQL 17.4 and the deployed Neon PostgreSQL 17 database:
 
-- `GET /api/analytics/summary` returned `totalEmployees = 10000`.
+- `GET /api/analytics/summary` returned `totalEmployees = 10000` on the live deployment.
+- The live response contained 10 currencies and 10 countries.
 - The seed is deterministic and skipped when employees already exist.
 - Ten currencies; per-currency headcount sums to 10,000.
 - Dashboard payroll totals and averages agree: for INR, `1,798,590,544 / 1,000 =
@@ -34,44 +35,57 @@ Verified against PostgreSQL 17.4 on 2026-10-28:
 - Currency and department/country breakdowns are computed by grouped SQL, not in the
   browser.
 
-The local runtime check was performed before the final currency-formatting-only change.
-The AWS deployment smoke test below must be rerun against the deployed jar.
+## Deployed smoke test
 
-## Production smoke test (after AWS deployment)
+Deployment: Render Free service `acme-payroll` in Singapore, built from the repository
+Dockerfile and connected to Neon PostgreSQL 17.
+
+| Check | Result |
+| --- | --- |
+| Dashboard `/` | HTTP 200, 28,487-byte Angular shell |
+| Deep link `/employees/1` | HTTP 200; SPA fallback served the Angular shell |
+| `/api/analytics/summary` | `totalEmployees = 10000`; 10 currencies; 10 countries |
+| Dashboard content | 10,000 employees; USD payroll `95,761,303`; average `95,761` |
+| Browser console | No application errors observed during smoke tests |
 
 ```powershell
-$url = aws cloudformation describe-stacks --stack-name acme-payroll-prod `
-  --query "Stacks[0].Outputs[?OutputKey=='ApplicationUrl'].OutputValue" --output text
-Invoke-RestMethod "$url/api/analytics/summary" | Select-Object totalEmployees
-Invoke-WebRequest "$url/employees" -UseBasicParsing | Select-Object StatusCode
-Invoke-WebRequest "$url/employees/1" -UseBasicParsing | Select-Object StatusCode
+$base = 'https://acme-payroll-a2d1.onrender.com'
+$summary = Invoke-RestMethod "$base/api/analytics/summary"
+$summary.totalEmployees
+$summary.currencies.Count
+(Invoke-WebRequest "$base/employees/1" -UseBasicParsing).StatusCode
 ```
 
-Expected: 10,000 employees; both deep links return HTTP 200 with the Angular shell.
+Expected: `10000`, `10`, and `200`.
 
 ## Performance checks
 
+- Live employee-list API: 183 ms, 260 ms, and 494 ms across three warm runs.
+- Live analytics API: 390 ms, 407 ms, and 499 ms across three warm runs.
 - Employee list: paginated SQL, maximum page size 100; browser never loads 10,000 rows.
 - Analytics: three grouped queries per dashboard request.
 - Seed: JDBC batches; no per-row JPA flush.
 - Composite indexes: `(last_name, first_name, id)`, `(currency, department)`, and
   `(currency, country)`.
 - Bundle: one shared initial chunk plus four lazy feature chunks.
+- Render Free cold start: the service sleeps after 15 minutes idle; warm up the live URL
+  before recording the demo.
 
-Run the repeatable API timing block in the root README against the deployed URL and
-record the median of three warm runs in the submission notes.
+## Screenshots
 
-## Screenshots to capture
+Captured from the deployed application and visually verified:
 
-1. Dashboard at 1440×900, including INR selected and department/country breakdowns.
-2. Employee list with filters and sort visible.
-3. Employee detail with salary history.
-4. Salary-change dialog.
-5. Create/edit form, including the current-salary panel.
-6. Dashboard at 390×844 for mobile responsiveness.
+1. [Dashboard at 1440x900](screenshots/dashboard-desktop.png), including USD selected and
+   department/country breakdowns.
+2. [Employee directory at 1440x900](screenshots/employee-list-desktop.png), with filters
+   and sort controls visible.
+3. [Employee detail at 1440x900](screenshots/employee-detail-desktop.png), with salary
+   history.
+4. [Dashboard at 390x844](screenshots/dashboard-mobile.png), verified with no horizontal
+   overflow (`document.documentElement.scrollWidth = 390`).
 
 ## Known test limitation
 
 Automated backend integration tests use H2 in PostgreSQL compatibility mode for speed.
-The application itself is verified against PostgreSQL 17.4, including Flyway and the
-10,000-employee seed.
+The application itself is verified against PostgreSQL 17.4 locally and Neon PostgreSQL 17
+in the live deployment, including Flyway and the 10,000-employee seed.

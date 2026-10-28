@@ -13,7 +13,21 @@ single-page application. A deterministic seeder provides demonstration data.
 - Responsive Angular Material UI with URL-addressable list filters and deep links.
 - Flyway-owned schema, database constraints, 10,000-employee seed, and automated tests.
 - One production jar can serve both the API and the Angular application.
-- Docker Compose, Render, and AWS Elastic Beanstalk + RDS deployment artifacts.
+- Live Render Free deployment backed by Neon PostgreSQL; Docker Compose and optional AWS artifacts.
+
+## Live demo
+
+- Application: <https://acme-payroll-a2d1.onrender.com>
+- Repository: <https://github.com/Ashok-461999/acme-payroll>
+
+The Render Free service sleeps after 15 minutes without traffic. The first request can
+take about a minute while it wakes; subsequent requests are fast.
+
+Screenshots are in [docs/screenshots](docs/screenshots):
+[dashboard](docs/screenshots/dashboard-desktop.png),
+[employee directory](docs/screenshots/employee-list-desktop.png),
+[employee detail](docs/screenshots/employee-detail-desktop.png), and
+[mobile dashboard](docs/screenshots/dashboard-mobile.png).
 
 ## Repository layout
 
@@ -21,8 +35,8 @@ single-page application. A deterministic seeder provides demonstration data.
 backend/    Spring Boot API, tests, Flyway migrations
 frontend/   Angular application and Karma/Jasmine tests
 docs/       Requirements, architecture, deployment, demo, and AI workflow
-infra/      AWS Elastic Beanstalk + RDS CloudFormation template
-scripts/    Build and AWS deployment scripts
+infra/      Optional AWS Elastic Beanstalk + RDS CloudFormation template
+scripts/    Build and optional AWS deployment scripts
 ```
 
 ## Prerequisites
@@ -89,14 +103,19 @@ Angular router by `SpaForwardFilter`; `/api` paths always return API responses.
 
 ## Deployment
 
+The submitted demo runs on **Render Free** with a **Neon Free PostgreSQL 17** database.
+`render.yaml` defines the Docker web service and expects `DB_URL`, `DB_USERNAME`, and
+`DB_PASSWORD` to be supplied as secret environment variables. No database credential is
+stored in this repository.
+
 - **Docker:** `docker compose up --build` starts PostgreSQL 17 and the app.
-- **Render:** apply `render.yaml` as a Blueprint.
-- **AWS:** `.\scripts\deploy-aws.ps1 -Region ap-south-1` provisions an Elastic Beanstalk
-  single-instance environment and a private RDS PostgreSQL database through
-  `infra/aws-elastic-beanstalk.yaml`. It builds and uploads the jar, generates the
-  database password, waits for CloudFormation, and smoke-tests the deployed API.
-  Approximate cost is $22–27/month; see [docs/deployment.md](docs/deployment.md) for
-  prerequisites, outputs, HTTPS limitations, and cleanup.
+- **Render + Neon:** create a Neon project, create a Render Blueprint from this repository,
+  and set the three database secrets when prompted. The live service was smoke-tested at
+  <https://acme-payroll-a2d1.onrender.com>.
+- **AWS (optional):** `.\scripts\deploy-aws.ps1 -Region ap-south-1` provisions an
+  Elastic Beanstalk single-instance environment and a private RDS PostgreSQL database
+  through `infra/aws-elastic-beanstalk.yaml`. It is not used for the submitted demo.
+  See [docs/deployment.md](docs/deployment.md) for details and cleanup.
 
 If PowerShell blocks local scripts:
 
@@ -209,14 +228,29 @@ After starting the backend, warm up once and then run:
 
 Repeat with `/api/analytics/summary` to measure the dashboard endpoint.
 
+## Deployed smoke test
+
+The live deployment was verified with:
+
+```powershell
+$base = 'https://acme-payroll-a2d1.onrender.com'
+$summary = Invoke-RestMethod "$base/api/analytics/summary"
+$summary.totalEmployees
+$summary.currencies.Count
+(Invoke-WebRequest "$base/employees/1" -UseBasicParsing).StatusCode
+```
+
+Expected: `10000`, `10`, and `200`. Three warm runs measured the employee list at
+183-494 ms and analytics at 390-499 ms.
+
 ## Known limitations
 
 - No authentication or role management; the assessment assumes one trusted HR user.
 - No currency conversion, payroll processing, tax, approvals, or deletion.
-- Automated integration tests use H2 in PostgreSQL mode; PostgreSQL is used for the
-  running application and has been verified manually against the seed.
-- The AWS demo uses one Beanstalk instance and an HTTP endpoint to keep cost low. HTTPS
-  needs an ALB/CloudFront distribution or a domain plus certificate; see
-  [docs/deployment.md](docs/deployment.md).
-- The public URL, demo video, and repository link are tracked in
-  [docs/submission-checklist.md](docs/submission-checklist.md).
+- Automated integration tests use H2 in PostgreSQL mode; PostgreSQL 17 is used for the
+  running application, including the deployed Neon database.
+- Render Free sleeps after 15 minutes without traffic, so the first request can take
+  about a minute. Neon Free also has compute, storage, and data-transfer limits.
+- Optional AWS artifacts exist for an always-on demo but were not provisioned.
+- The public URL and repository are live; the demo video remains the final submission
+  step tracked in [docs/submission-checklist.md](docs/submission-checklist.md).

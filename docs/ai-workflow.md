@@ -39,20 +39,23 @@ The following was exercised locally during implementation:
 - API checks: total employees 10,000; 10 currencies; headcount sum 10,000; search by
   `EMP-00001`; engineering filter 1,034; GBP filter 1,000.
 - Single-jar packaging with the Angular assets and the SPA forward filter.
-- Docker, Render, GitHub Actions, and AWS Elastic Beanstalk + RDS artifacts added; the
-  AWS deployment requires account credentials and is smoke-tested from
-  `scripts/deploy-aws.ps1`.
+- Public GitHub repository and live Render Free deployment backed by Neon PostgreSQL 17.
+- Live smoke test: 10,000 employees; 10 currencies; dashboard and SPA deep links HTTP 200.
+- Live warm timings: employee list 183-494 ms; analytics 390-499 ms.
+- Desktop and mobile screenshots captured and visually reviewed.
+- Docker, Render + Neon, GitHub Actions, and optional AWS Elastic Beanstalk + RDS
+  artifacts added; AWS was not provisioned for the submitted demo.
 
-See [verification.md](verification.md) for commands, bundle sizes, and the post-deploy
-smoke-test checklist.
+See [verification.md](verification.md) for commands, bundle sizes, and the deployed
+smoke-test evidence.
 
 ## Known gaps / honest limitations
 
 - The automated integration suite uses H2 in PostgreSQL compatibility mode. The real
   application was verified against PostgreSQL, but CI does not yet provision PostgreSQL.
-- The public AWS URL, public GitHub repository, and demo video require external account
-  access; they are the remaining submission steps in
-  [submission-checklist.md](submission-checklist.md).
+- The public repository and live Render URL are complete. The demo video is the
+  remaining submission step in [submission-checklist.md](submission-checklist.md).
+- Render Free sleeps after 15 minutes idle, so the first review request may be slow.
 - Authentication, FX conversion, payroll processing, approvals, historical correction,
   and future-dated raises are intentionally out of scope.
 - The idempotency design handles retries by natural key. A simultaneous employee-create
